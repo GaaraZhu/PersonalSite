@@ -1,0 +1,97 @@
+baseurl = "https://GaaraZhu.github.io"
+DefaultContentLanguage = "en"
+title = "Gary's Blog"
+theme = "beautifulhugo"
+metaDataFormat = "yaml"
+pygmentsStyle = "trac"
+pygmentsUseClasses = true
+pygmentsCodeFences = true
+pygmentsCodefencesGuessSyntax = true
+summaryLength = 25
+
+[imaging]
+  anchor = 'Smart'
+  bgColor = '#ffffff'
+  hint = 'photo'
+  quality = 100
+  resampleFilter = 'Lanczos'
+
+[Params]
+  homeTitle = "Happy coding"
+  subtitle = "Continuous learning, improving, and contributing"
+# mainSections = []
+  logo = "img/avatar-icon.png" # Expecting square dimensions
+  favicon = "img/favicon.ico"
+  dateFormat = "January 2, 2006"
+  commit = false
+  rss = true
+  comments = true
+  readingTime = true
+  wordCount = false
+  useHLJS = true
+  socialShare = true
+  delayDisqus = true
+  showRelatedPosts = true
+
+[Author]
+  name = "GaryZhu"
+  website = "https://github.com/GaaraZhu"
+  email = "sec.gary@gmail.com"
+  github = "GaaraZhu"
+  linkedin = "gary-zhu-53114169"
+
+[[menu.main]]
+    name = "Blog"
+    pre = "<br />"
+    weight = 20
+
+[[menu.main]]
+    parent = "Blog"
+    name = "Chat the Ops up"
+    url = "chat-the-ops-up"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "Fine-grained authorization with Amazon Cognito user pool and API Gateway"
+    url = "fine-grained-authorization"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "基于Aviator的注解驱动验证框架"
+    url = "aviator-validator"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "Java深度克隆"
+    url = "deep-clone"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "用MapReduce来进行用户行为分"
+    url = "analysis-user-behaviour"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "MapReduce tuning"
+    url = "map-reduce-tunning"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "基于Sqoop和Hadoop的数据质量分析报告"
+    url = "Sqoop"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "Mysql读写分离：Spring+JPA应用层实现 vs Amoeba中间件实现"
+    url = "read-write-split"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "Tail call optimization in Scala"
+    url = "tail-call-optimization"
+    weight = 1
+[[menu.main]]
+    parent = "Blog"
+    name = "AWS one punch"
+    url = "aws-one-punch"
+    weight = 1
