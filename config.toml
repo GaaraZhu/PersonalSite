@@ -1,7 +1,7 @@
 baseurl = "https://GaaraZhu.github.io"
 DefaultContentLanguage = "en"
 title = "Gary's Blog"
-theme = "beautifulhugo"
+theme = "hugo"
 metaDataFormat = "yaml"
 pygmentsStyle = "trac"
 pygmentsUseClasses = true
