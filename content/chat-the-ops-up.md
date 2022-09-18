@@ -57,8 +57,8 @@ The deployment job can only be executed after the build job is finished. Althoug
 ## Solution
 \
 To make our life easier, I created [Bamboo-on-Teams](https://github.com/GaaraZhu/bamboo-on-teams) with below main features to make Microsoft Teams the centralised place for Bamboo operations.
-* Bamboo interaction - interact with Bamboo in Microsoft Teams with wide range of [commands](https://github.com/GaaraZhu/bamboo-on-teams#available-commands).
-* Result notification - receive notification in Microsoft Teams for Bamboo jobs.
+* Bamboo interaction - interact with Bamboo in Microsoft Teams with wide range of [commands](https://github.com/GaaraZhu/bamboo-on-teams#available-commands), and get Teams notifications afterwards. 
+* On-demand CI/CD automation - automatically build, test, and deploy with Bamboo in Microsoft Teams.
 * Hanging detection - detect hanging Bamboo jobs and alert in Microsoft Teams.
   
 &nbsp;
