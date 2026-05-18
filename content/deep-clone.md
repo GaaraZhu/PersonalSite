@@ -1,7 +1,7 @@
 ---
 title: "Java深度克隆"
 date: 2012-09-28T08:33:51+13:00
-draft: false
+draft: true
 tags: ["Deep clone", "Apache Commons", "Java"]
 readingTime: 6
 customSummary: 在实际开发中经常遇到属性克隆的问题，比如在表现层提交的Request DTO，可能需要在控制层被映射成多个Java Bean，再传递到逻辑层来进行相应的业务处理，那么如何才能简单而又快速的完成属性克隆呢？

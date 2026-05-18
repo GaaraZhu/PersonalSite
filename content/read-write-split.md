@@ -1,7 +1,7 @@
 ---
 title: "Mysql读写分离：Spring+JPA应用层实现 vs Amoeba中间件实现"
 date: 2013-01-05T21:08:12+13:00
-draft: false
+draft: true
 tags: ["Read-write splitting", "Architecture", "Mysql", "Java"]
 readingTime: 10
 customSummary: 前段时间看了篇文章，讲Youku网数据库架构的演变，如何从最开始的读写分离，再到垂直分区，最后到水平分片，一步一步慢慢成熟的。看完之后很有冲动抽出一个模型来把这几种技术都实现一下。 说干就干，首先是读写分离...

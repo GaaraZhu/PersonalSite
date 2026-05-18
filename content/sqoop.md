@@ -1,7 +1,7 @@
 ---
 title: "基于Sqoop和Hadoop的数据质量分析报告"
 date: 2012-11-15T23:14:41+13:00
-draft: false
+draft: true
 tags: ["Sqoop", "MapReduce", "Hadoop"]
 readingTime: 3
 customSummary: 一个系统的数据质量不高通常是软件本身做的不够好，数据从源头就出现了问题。为了能够持续归总interface数据质量报告，来完善系统流程，我们就需要定量定性的分析源头数据。但是在大数据量的情况下，如何实现高效有效的数据分析呢？

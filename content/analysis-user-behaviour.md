@@ -1,7 +1,7 @@
 ---
 title: "用MapReduce来进行用户行为分析"
 date: 2012-09-16T01:26:10+13:00
-draft: false
+draft: true
 tags: ["MapReduce", "User analysis", "Hadoop", "Java"]
 readingTime: 5
 customSummary: 在系统设计的时候，为了提高可用性，经常需要对用户行为进行分析，来持续完善系统。一个典型的场景就是分析用户的查询条件，根据操作习惯和规律来精简用户输入，让查询变得更简单更高效。那么对于这种场景，我们应该如何实现？

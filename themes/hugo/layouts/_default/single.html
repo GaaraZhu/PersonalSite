@@ -57,7 +57,7 @@
 
 
       {{ if (.Params.comments) | or (and (or (not (isset .Params "comments")) (eq .Params.comments nil)) (and .Site.Params.comments (ne .Type "page"))) }}
-        {{ if .Site.DisqusShortname }}
+        {{ if .Site.Params.disqusShortname }}
           {{ if .Site.Params.delayDisqus }}
           <div class="disqus-comments">                  
             <button id="show-comments" class="btn btn-default" type="button">{{ i18n "show" }} <span class="disqus-comment-count" data-disqus-url="{{ trim .Permalink "/" }}">{{ i18n "comments" }}</span></button>
@@ -72,7 +72,18 @@
           </div>
           {{ else }}
           <div class="disqus-comments">
-            {{ template "_internal/disqus.html" . }}
+            {{- with .Site.Params.disqusShortname -}}
+            <div id="disqus_thread"></div>
+            <script>
+              var disqus_config = function() { this.page.url = '{{ trim $.Permalink "/" }}'; };
+              (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://{{ . }}.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+              })();
+            </script>
+            {{- end -}}
           </div>
           {{ end }}
         {{ end }}

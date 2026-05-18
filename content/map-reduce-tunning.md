@@ -1,7 +1,7 @@
 ---
 title: "MapReduce tuning"
 date: 2012-12-23T01:33:45+13:00
-draft: false
+draft: true
 tags: ["MapReduce", "Performance tuning", "Hadoop"]
 readingTime: 5
 customSummary: MapReduce is not a low latency computing model, minutes at least will go before we got the result. But this does not mean there's no way for us to make it faster. Combined with the nature of Hadoop, here are some solutions from different pespective.

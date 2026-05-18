@@ -1,7 +1,7 @@
 ---
 title: "基于Aviator的注解驱动验证框架"
 date: 2012-08-25T09:20:14+13:00
-draft: false
+draft: true
 tags: ["Data quality", "Declarative validation", "Aviator", "Java"]
 readingTime: 8
 customSummary: 程序开发过程中，在同一系统中层层之间数据传递或者是异构系统之间同步异步通信的时候，我们经常需要对Java Bean进行属性验证，来决定是否继续后续process，或者直接抛出error message。EasyValidation是基于Aviator DIY的申明式验证框架，能解决传统解决方案存在的弊端与不足。

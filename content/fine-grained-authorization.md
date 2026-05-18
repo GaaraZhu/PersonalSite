@@ -1,6 +1,6 @@
 ---
 title: "Fine-grained authorization with Amazon Cognito user pool and API Gateway"
-date: 2022-04-10T17:09:20+13:00
+date: 2022-01-10T17:09:20+13:00
 draft: false
 tags: ["Microservices", "Authorization", "Serverless", "AWS", "Amazon Cognito", "API Gateway", "Serverless"]
 readingTime: 10
