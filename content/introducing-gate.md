@@ -184,6 +184,16 @@ The output groups columns by tier (Critical / Elevated / Standard) and emits a r
 
 This was the missing piece for organisations evaluating whether to deploy an AI agent against an existing database at all. Before, the answer was "I dunno, grep the schema and squint." Now it's a single piped command, scriptable in CI.
 
+## Knowing what got caught: `gate retro`
+
+`gate scan` is the *before*. `gate retro` is the *after*. A deterministic filter has the rare property that you can count exactly what it did — there is no sampling, no model-of-the-month estimating, no confidence interval. Once `gate` has been running for a sprint or a quarter, `retro` reads the local JSONL stats log and prints the tally:
+
+![gate retro output showing all-time statistics](/images/introducing-gate/retro.jpg)
+
+Two reasons this matters. First, it answers the question every security-adjacent team eventually asks of an opt-in filter on the hot path: *is the thing actually doing something, or is it a placebo we forget to look at?* The numbers come from the same pipeline that did the redaction; they aren't an estimate. Second, it gives you a feedback loop. A `Hit rate` of 0% on a tool that should be returning PII usually means the data is coming back in a format `gate` couldn't parse — CSV without a `pipe:`, an unusual JSON envelope, a column-name convention not yet in config. A surprising sub-category in the breakdown — `tax_id` showing up in a table you forgot was joined — is a finding worth tracing.
+
+Stats are local-only: they're written to a JSONL log on disk, never sent anywhere, and `stats.enabled: false` turns the recording off entirely.
+
 ## Honesty about the gaps
 
 The full threat model is in the [repo](https://github.com/GaaraZhu/gate/blob/main/THREAT-MODEL.md) but the headlines are:
