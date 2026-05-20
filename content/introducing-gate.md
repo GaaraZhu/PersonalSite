@@ -1,6 +1,6 @@
 ---
 title: "Gate: a deterministic PII boundary between your data and AI agents"
-date: 2026-05-17T22:00:00+12:00
+date: 2026-05-20T20:17:00+12:00
 draft: false
 tags: ["AI", "Security", "PII", "Rust", "MCP", "Claude Code"]
 readingTime: 10
@@ -29,7 +29,7 @@ Two weeks later, you scroll back through a transcript and see this:
 
 That's now in the model's context. From there it's in the conversation log, in any summary the agent generates, in the file it just wrote to `/tmp`, and — if the harness has any kind of memory or "share session" feature — potentially somewhere on someone else's machine. The agent didn't do anything wrong. Neither did you. The tool returned what you asked for, the model ingested it, life went on.
 
-This is the default. Every CLI database client, every MCP server, every `curl | jq` pipeline an agent runs returns the same data a human would see. The model wasn't designed to triage what should and shouldn't be in its window; that decision was outsourced to the human who wrote the prompt. With agents, there is no such human in the loop on a per-query basis.
+This is the default. Every CLI client, MCP server, and `curl | jq` pipeline returns the same bytes a human would see — and with agents, there's no human in the loop to triage what enters the model's window.
 
 This post is about a tool that fixes the leak at the layer where it can be fixed deterministically.
 
@@ -53,11 +53,11 @@ The design constraints, in order of priority:
 3. **Fast on the hot path.** It runs on every Bash command the agent invokes. If it's slow, people turn it off.
 4. **Honest about its limits.** A false-negative is worse than a false-positive — the failure mode is silent data exposure, not a noisy block.
 
-The whole thing is ~7k lines of Rust, MIT-licensed, builds with `cargo build`, and ships on Homebrew.
+The whole thing is ~7k lines of Rust with ~6k of tests (491 passing, golden-file coverage on the redactor), MIT-licensed, builds with `cargo build`, and ships on Homebrew.
 
 ## The two access paths
 
-Modern agent harnesses give models data through two doors, and the centre of gravity has shifted hard toward one of them. The Model Context Protocol has become the de-facto integration layer for connecting LLMs to backend systems — Postgres, Snowflake, GitHub, Linear, internal APIs, file stores, ticketing — and most of the published material on MCP is about *building* servers, not about auditing what they return to the model. The model trusts what the server hands back. The server trusts what the database hands back. Nobody is reading the bytes.
+Modern agent harnesses give models data through two doors. The Model Context Protocol has become the de-facto integration layer for Postgres, Snowflake, GitHub, Linear, and internal APIs — and most of the published material on it is about *building* servers, not about auditing what they return. The model trusts what the server hands back. Nobody is reading the bytes.
 
 `gate` covers both doors: MCP servers via a stdio proxy, and Bash/CLI tools via a harness hook.
 
@@ -75,7 +75,7 @@ AI ──tools/call──> gate mcp ──forward──> upstream MCP server
 AI <───redacted result─┘
 ```
 
-The proxy is transparent. The upstream server runs unchanged, the agent doesn't know it's been wrapped, and you don't have to migrate one server at a time:
+The proxy is transparent. Upstream servers run unchanged, and you migrate the whole fleet in one shot:
 
 ```bash
 gate init --wrap-mcp                                    # dry-run: lists every server that would be wrapped
@@ -103,15 +103,15 @@ The rewrite happens in the harness's pre-tool-execution hook, which means it is 
 - **OpenCode** — a TypeScript plugin's `tool.execute.before` handler mutates `output.args.command` in-flight.
 - **GitHub Copilot CLI** — `PreToolUse` hook in `.github/hooks/PreToolUse.json` returns `modifiedArgs`.
 
-The agent never sees the rewrite. It doesn't know `gate` is there. There is no wrapper script on PATH that a human user has to interact with — humans running the same commands in a normal terminal are untouched.
+The agent doesn't know `gate` is there, and humans running the same commands in a normal terminal are untouched — there's no wrapper script on PATH.
 
 ## The two-gate detection pipeline
 
-The name `gate` is plural. There are two filters, applied in sequence, with very different jobs.
+Despite the name, `gate` is two filters, applied in sequence, with very different jobs.
 
 ### Gate 1: SQL intent analysis (best-effort)
 
-When the intercepted command has a `sql_arg` configured (e.g. `tkpsql --sql`, `psql -c`, `databricks --json statement`), `gate` extracts the SQL string and runs it through a hand-written tokenizer. The goal is modest: figure out which *columns* the query selects, so we can mark them for guaranteed redaction regardless of what comes back in the value.
+When the intercepted command has a `sql_arg` configured (e.g. `tkpsql --sql`, `psql -c`, `databricks --json statement`), `gate` extracts the SQL string and runs it through a hand-written tokenizer. The goal is modest: figure out which *columns* the query selects, so they're marked for guaranteed redaction regardless of what comes back in the value.
 
 ```sql
 SELECT u.first_name, u.email AS contact, p.phone
@@ -182,7 +182,7 @@ psql -d mydb -c "SELECT TABLE_NAME, COLUMN_NAME
 
 The output groups columns by tier (Critical / Elevated / Standard) and emits a risk floor based on prevalence. It exits 1 if any PII is found, so it slots into CI as a schema audit. False positives — `city` in a `products` table, `bank_account_id` used as a foreign key — get handled by an interactive `--review` mode that adds them to an allowlist with one keystroke each. Allowlisted columns skip *name-based* redaction only; Gate 2 still inspects their values for regex and Luhn hits.
 
-This was the missing piece for organisations evaluating whether to deploy an AI agent against an existing database at all. Before, the answer was "I dunno, grep the schema and squint." Now it's a single piped command, scriptable in CI.
+Before, schema PII auditing was "grep and squint"; now it's a single piped command, scriptable in CI.
 
 ## Knowing what got caught: `gate retro`
 
@@ -190,7 +190,7 @@ This was the missing piece for organisations evaluating whether to deploy an AI 
 
 ![gate retro output showing all-time statistics](/images/introducing-gate/retro.jpg)
 
-Two reasons this matters. First, it answers the question every security-adjacent team eventually asks of an opt-in filter on the hot path: *is the thing actually doing something, or is it a placebo we forget to look at?* The numbers come from the same pipeline that did the redaction; they aren't an estimate. Second, it gives you a feedback loop. A `Hit rate` of 0% on a tool that should be returning PII usually means the data is coming back in a format `gate` couldn't parse — CSV without a `pipe:`, an unusual JSON envelope, a column-name convention not yet in config. A surprising sub-category in the breakdown — `tax_id` showing up in a table you forgot was joined — is a finding worth tracing.
+It answers the question every security team asks of an opt-in filter on the hot path: *is this thing actually doing something, or a placebo we forget about?* The numbers come from the same pipeline that did the redaction — no sampling, no estimate. It also surfaces config gaps: a `Hit rate` of 0% on a tool that should be returning PII usually means the data is coming back in a format `gate` couldn't parse — CSV without a `pipe:`, an unusual JSON envelope, a column-name convention not yet in config. A surprising sub-category in the breakdown — `tax_id` showing up in a table you forgot was joined — is a finding worth tracing.
 
 Stats are local-only: they're written to a JSONL log on disk, never sent anywhere, and `stats.enabled: false` turns the recording off entirely.
 
@@ -199,23 +199,23 @@ Stats are local-only: they're written to a JSONL log on disk, never sent anywher
 The full threat model is in the [repo](https://github.com/GaaraZhu/gate/blob/main/THREAT-MODEL.md) but the headlines are:
 
 - **`gate` is not a sandbox.** It only filters commands explicitly listed in `tools:`. Anything else passes through.
-- **The adversary model is an inadvertent agent, not a malicious one.** A jailbroken agent that deliberately base64-encodes data before exfiltrating it through a non-intercepted tool is out of scope. Combine `gate` with harness-level tool restrictions if you need that boundary.
+- **The adversary model is an inadvertent agent, not a malicious one.** `sudo gate protect` (Unix) chowns the config to root so a hijacked agent can't disable gate via config edits, but a jailbroken agent that deliberately base64-encodes data, requests CSV output, or exfiltrates through a non-intercepted tool is still out of scope. Combine `gate` with harness-level tool restrictions if you need that boundary.
 - **Value regex is narrow.** Email, US SSN (dashes required — `123456789` slips), US phone, payment cards (via Luhn). Everything else — IBAN, passport, NHS number, NZ IRD, AU TFN — is column-name-based. If the column has an unusual name and isn't in your config's `column_names` list, the value will pass through. Configure for your region.
 - **MCP `resources/read` and `prompts/get` are not redacted.** Only `tools/call` responses go through the scanner.
 - **Non-JSON output is not redacted.** If a tool emits CSV or plain text, configure a `pipe:` to convert it (the example config uses `jq -c .` for curl and a 3-line Python `csv.DictReader` for `psql --csv`).
-- **Disable mechanisms exist.** `GATE_DISABLED=1`, `enabled: false` in config, deleting the config file. Anything with write access to the user's environment can turn the filter off.
+- **Disable mechanisms exist.** `enabled: false` in config, deleting the config file, or removing the hook entry from the harness settings. `sudo gate protect` (Unix) chowns the config to root to block the first two from inside the agent, but the harness settings file is still user-writable.
 
 If any of these are deal-breakers, the tool is honest about it up front. Better than discovering it in a post-mortem.
 
 ## Why a deterministic CLI and not "just ask the model"
 
-It is technically possible to ask the model to redact its own input before it ingests it. People are building this. We chose not to, for three reasons:
+It is technically possible to ask the model to redact its own input before it ingests it. People are building this. I chose not to, for three reasons:
 
 1. **Cost.** Every query result would round-trip through a model call. A single agent session might run hundreds of queries.
 2. **Latency.** A hook on every Bash command needs to return in single-digit milliseconds. `gate hook`'s passthrough path is in that ballpark; an LLM call is not.
 3. **Auditability.** "Why was this field redacted?" needs an answer that survives review. A regex and a tokenizer can be inspected, golden-file tested, and re-run on the same input forever. A model in 2026 will not give the same output on the same input in 2027, and you will not get a stack trace.
 
-Determinism is the feature. Slow, expensive, drifting filters are not a substitute for it.
+Existing PII tools (Presidio, Nightfall, Skyflow) take the opposite trade — they're mostly built for data-pipeline or SaaS-gateway use, sitting at API boundaries or in batch jobs, not in the agent's tool-execution path with single-digit-ms latency and harness-level hook enforcement. `gate` is shaped specifically for that boundary.
 
 ## What it costs to try
 
@@ -233,17 +233,17 @@ gate init --wrap-mcp  # dry-run: shows which MCP servers would be wrapped
 gate validate         # compiles all regex patterns, lints the config
 ```
 
-Pipe your schema into `gate scan` first to see what you're working with. Run `gate disable` (or `unset` the env var) to turn it off for a session if you need to debug something. `gate uninstall` removes everything `gate` added to your system and asks for confirmation before each step.
+Pipe your schema into `gate scan` first to see what you're working with. Run `gate disable` to turn it off if you need to debug something, and `gate enable` to switch it back on. `gate uninstall` removes everything `gate` added to your system and asks for confirmation before each step.
 
 ## Where this is going
 
-The current focus areas, roughly in priority order:
+What's next, roughly in priority order:
 
 - **More built-in patterns by region.** The value-regex coverage is US-centric; community PRs adding IBAN, passport, NHS, IRD, TFN, Aadhaar, etc., are explicitly welcome.
 - **MCP `resources/read` redaction.** Closing the one documented gap in the MCP path.
 - **More harness integrations.** Claude Code, OpenCode, and Copilot CLI are in. Cursor, Aider, and others are open questions — file an issue if you want one.
-- **Write-path inspection.** Today `gate` only sees query results; `INSERT`/`UPDATE`/`DELETE` are not inspected. There's a plausible v0.7 line for blocking writes that target redacted-fielded tables.
+- **Write-path inspection.** Today `gate` only sees query results; `INSERT`/`UPDATE`/`DELETE` are not inspected. There's a plausible v0.9 line for blocking writes that target redacted-fielded tables.
 
-If you've been holding off on connecting your AI agent to a real database because the consent boundary for "what the model sees" was a vibes-based decision, this is the layer that turns it into a config file. Try it, scan your schema, and tell us what you find. The repo is [github.com/GaaraZhu/gate](https://github.com/GaaraZhu/gate). The issue tracker is open. The license is MIT.
+If you've been holding off on connecting your AI agent to a real database because "what the model sees" was a vibes-based decision, this is the layer that turns it into a config file. Try it, scan your schema, and share what you find. The repo is [github.com/GaaraZhu/gate](https://github.com/GaaraZhu/gate). The issue tracker is open. The license is MIT.
 
-We'd rather hear "gate redacted something it shouldn't have" than "gate let something through that it shouldn't have." If you find the second one, that's a security bug and there's a [process for it](https://github.com/GaaraZhu/gate/blob/main/SECURITY.md).
+I'd rather hear "gate redacted something it shouldn't have" than "gate let something through that it shouldn't have." If you find the second one, that's a security bug and there's a [process for it](https://github.com/GaaraZhu/gate/blob/main/SECURITY.md).
