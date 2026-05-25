@@ -101,7 +101,9 @@ The rewrite happens in the harness's pre-tool-execution hook, which means it is 
 
 - **Claude Code** — `PreToolUse` hook in `~/.claude/settings.json`; Claude Code substitutes the rewritten command via `updatedInput` before spawning.
 - **OpenCode** — a TypeScript plugin's `tool.execute.before` handler mutates `output.args.command` in-flight.
+- **Cursor** — `PreToolUse` hook in `.cursor/mcp.json`; Cursor substitutes the rewritten command before spawning.
 - **GitHub Copilot CLI** — `PreToolUse` hook in `.github/hooks/PreToolUse.json` returns `modifiedArgs`.
+- **Codex CLI** — `PreToolUse` hook trusted and enabled via the Permissions UI; substitutes the rewritten command before spawning.
 
 The agent doesn't know `gate` is there, and humans running the same commands in a normal terminal are untouched — there's no wrapper script on PATH.
 
@@ -200,7 +202,7 @@ The full threat model is in the [repo](https://github.com/GaaraZhu/gate/blob/mai
 
 - **`gate` is not a sandbox.** It only filters commands explicitly listed in `tools:`. Anything else passes through.
 - **The adversary model is an inadvertent agent, not a malicious one.** `sudo gate protect` (Unix) chowns the config to root so a hijacked agent can't disable gate via config edits, but a jailbroken agent that deliberately base64-encodes data, requests CSV output, or exfiltrates through a non-intercepted tool is still out of scope. Combine `gate` with harness-level tool restrictions if you need that boundary.
-- **Value regex is narrow.** Email, US SSN (dashes required — `123456789` slips), US phone, payment cards (via Luhn). Everything else — IBAN, passport, NHS number, NZ IRD, AU TFN — is column-name-based. If the column has an unusual name and isn't in your config's `column_names` list, the value will pass through. Configure for your region.
+- **Value regex is narrow.** Email, US SSN (dashes required — `123456789` slips), US phone, payment cards (via Luhn). Everything else — IBAN, passport, NHS number, NZ IRD, AU TFN — is column-name-based. If the column has an unusual name and isn't in your config's `column_denylist`, the value will pass through. Configure for your region.
 - **MCP `resources/read` and `prompts/get` are not redacted.** Only `tools/call` responses go through the scanner.
 - **Non-JSON output is not redacted.** If a tool emits CSV or plain text, configure a `pipe:` to convert it (the example config uses `jq -c .` for curl and a 3-line Python `csv.DictReader` for `psql --csv`).
 - **Disable mechanisms exist.** `enabled: false` in config, deleting the config file, or removing the hook entry from the harness settings. `sudo gate protect` (Unix) chowns the config to root to block the first two from inside the agent, but the harness settings file is still user-writable.
@@ -241,8 +243,7 @@ What's next, roughly in priority order:
 
 - **More built-in patterns by region.** The value-regex coverage is US-centric; community PRs adding IBAN, passport, NHS, IRD, TFN, Aadhaar, etc., are explicitly welcome.
 - **MCP `resources/read` redaction.** Closing the one documented gap in the MCP path.
-- **More harness integrations.** Claude Code, OpenCode, and Copilot CLI are in. Cursor, Aider, and others are open questions — file an issue if you want one.
-- **Write-path inspection.** Today `gate` only sees query results; `INSERT`/`UPDATE`/`DELETE` are not inspected. There's a plausible v0.9 line for blocking writes that target redacted-fielded tables.
+- **More harness integrations.** Claude Code, OpenCode, Copilot CLI, Cursor, and Codex CLI are in. Aider and others are open questions — file an issue if you want one.
 
 If you've been holding off on connecting your AI agent to a real database because "what the model sees" was a vibes-based decision, this is the layer that turns it into a config file. Try it, scan your schema, and share what you find. The repo is [github.com/GaaraZhu/gate](https://github.com/GaaraZhu/gate). The issue tracker is open. The license is MIT.
 
